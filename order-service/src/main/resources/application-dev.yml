@@ -1,0 +1,10 @@
+pazarsync:
+  security:
+    seed-users: true
+    users:
+      - username: admin
+        password: admin
+        role: ADMIN
+      - username: operator
+        password: operator
+        role: OPERATOR

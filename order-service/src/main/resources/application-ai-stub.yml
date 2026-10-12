@@ -1,0 +1,14 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+  ai:
+    model:
+      chat: none
+      embedding: none
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 32
+        distance-type: COSINE_DISTANCE
