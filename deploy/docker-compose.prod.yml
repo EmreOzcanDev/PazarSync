@@ -1,0 +1,68 @@
+# Single EC2 box in front of RDS. Kafka stays on the instance; Postgres does not.
+# Set SPRING_DATASOURCE_URL to the RDS endpoint before starting.
+
+services:
+  kafka:
+    image: apache/kafka:3.8.1
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_HEAP_OPTS: "-Xmx384M -Xms384M"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    restart: unless-stopped
+
+  mock-marketplace:
+    image: ghcr.io/emreozcandev/pazarsync-mock-marketplace:latest
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=35"
+    restart: unless-stopped
+
+  order-importer:
+    image: ghcr.io/emreozcandev/pazarsync-order-importer:latest
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=35"
+      SPRING_DATASOURCE_URL: ${IMPORTER_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      PAZARSYNC_IMPORTER_MARKETPLACE_BASE_URL: http://mock-marketplace:8082
+    depends_on:
+      - kafka
+      - mock-marketplace
+    restart: unless-stopped
+
+  order-service:
+    image: ghcr.io/emreozcandev/pazarsync-order-service:latest
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=40"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-ai-stub}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      - kafka
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  dashboard:
+    image: ghcr.io/emreozcandev/pazarsync-dashboard:latest
+    depends_on:
+      - order-service
+    ports:
+      - "80:80"
+    restart: unless-stopped

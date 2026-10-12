@@ -1,0 +1,6 @@
+target/
+.git/
+.idea/
+dashboard/node_modules/
+dashboard/dist/
+**/*.md
