@@ -1,0 +1,236 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-marketplace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-marketplace
+  template:
+    metadata:
+      labels:
+        app: mock-marketplace
+    spec:
+      containers:
+        - name: mock-marketplace
+          image: pazarsync/mock-marketplace:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 30
+          resources:
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-marketplace
+spec:
+  selector:
+    app: mock-marketplace
+  ports:
+    - port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-importer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-importer
+  template:
+    metadata:
+      labels:
+        app: order-importer
+    spec:
+      containers:
+        - name: order-importer
+          image: pazarsync/order-importer:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/importer
+            - name: SPRING_DATASOURCE_USERNAME
+              value: pazarsync
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pazarsync-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: pazarsync-config
+                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+            - name: PAZARSYNC_IMPORTER_MARKETPLACE_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: pazarsync-config
+                  key: PAZARSYNC_IMPORTER_MARKETPLACE_BASE_URL
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8083
+            initialDelaySeconds: 25
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8083
+            initialDelaySeconds: 40
+          resources:
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-importer
+spec:
+  selector:
+    app: order-importer
+  ports:
+    - port: 8083
+      targetPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: pazarsync/order-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60"
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: pazarsync-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/pazarsync
+            - name: SPRING_DATASOURCE_USERNAME
+              value: pazarsync
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pazarsync-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: pazarsync-config
+                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: pazarsync-secrets
+                  key: JWT_SECRET
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pazarsync-secrets
+                  key: GEMINI_API_KEY
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 40
+          resources:
+            limits:
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+spec:
+  selector:
+    app: order-service
+  ports:
+    - port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: pazarsync/dashboard:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+          resources:
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - port: 80
+      targetPort: 80

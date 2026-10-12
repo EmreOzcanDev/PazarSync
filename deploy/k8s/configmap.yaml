@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pazarsync-config
+data:
+  SPRING_PROFILES_ACTIVE: dev,ai-stub
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  PAZARSYNC_IMPORTER_MARKETPLACE_BASE_URL: http://mock-marketplace:8082
+  postgres-init.sql: |
+    CREATE EXTENSION IF NOT EXISTS vector;
+    CREATE DATABASE importer;
