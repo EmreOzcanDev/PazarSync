@@ -43,7 +43,9 @@ public class MarketplacePoller {
         this.properties = properties;
     }
 
-    @Scheduled(fixedDelayString = "${pazarsync.importer.poll-delay-ms:5000}")
+    @Scheduled(
+            fixedDelayString = "${pazarsync.importer.poll-delay-ms:5000}",
+            initialDelayString = "${pazarsync.importer.poll-delay-ms:5000}")
     public void poll() {
         pollOrders();
         pollQuestions();

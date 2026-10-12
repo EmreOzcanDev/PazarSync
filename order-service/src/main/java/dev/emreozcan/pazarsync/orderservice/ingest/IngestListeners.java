@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.JacksonException;
 
 @Component
 public class IngestListeners {
@@ -32,7 +31,12 @@ public class IngestListeners {
 
     @KafkaListener(topics = KafkaTopics.ORDERS_RECEIVED, groupId = "order-service")
     public void onOrder(String payload) {
-        orders.ingest(read(payload, OrderReceived.class));
+        try {
+            orders.ingest(read(payload, OrderReceived.class));
+        } catch (EventReadException ex) {
+            failures.recordPoison(KafkaTopics.ORDERS_RECEIVED, null, payload, ex.getMessage());
+            throw ex;
+        }
     }
 
     @KafkaListener(topics = KafkaTopics.QUESTIONS_RECEIVED, groupId = "order-service")
@@ -61,7 +65,7 @@ public class IngestListeners {
     private static <T> T read(String payload, Class<T> type) {
         try {
             return EventCodec.read(payload, type);
-        } catch (JacksonException ex) {
+        } catch (RuntimeException ex) {
             throw new EventReadException(ex);
         }
     }

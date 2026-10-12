@@ -1,5 +1,6 @@
 package dev.emreozcan.pazarsync.mock;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ public class MarketplaceStore {
     private final ConcurrentMap<Long, MarketplaceQuestion> questions = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, StockItem> stock = new ConcurrentHashMap<>();
 
+    @Autowired
     public MarketplaceStore(MockMarketplaceProperties properties) {
         this(properties, Math::random);
     }

@@ -5,6 +5,8 @@ import dev.emreozcan.pazarsync.events.KafkaTopics;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
 @Component
 public class EventPublisher {
 
@@ -15,7 +17,12 @@ public class EventPublisher {
     }
 
     public void publish(String topic, String key, Object event) {
-        kafkaTemplate.send(topic, key, event instanceof String payload ? payload : EventCodec.write(event));
+        String payload = event instanceof String text ? text : EventCodec.write(event);
+        try {
+            kafkaTemplate.send(topic, key, payload).get(10, TimeUnit.SECONDS);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not publish to " + topic, ex);
+        }
     }
 
     public void publishFailure(dev.emreozcan.pazarsync.events.SyncFailure failure) {

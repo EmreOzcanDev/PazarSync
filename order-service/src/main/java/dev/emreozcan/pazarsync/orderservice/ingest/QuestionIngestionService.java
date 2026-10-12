@@ -3,6 +3,7 @@ package dev.emreozcan.pazarsync.orderservice.ingest;
 import dev.emreozcan.pazarsync.events.QuestionReceived;
 import dev.emreozcan.pazarsync.orderservice.domain.CustomerQuestion;
 import dev.emreozcan.pazarsync.orderservice.domain.CustomerQuestionRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,14 +17,17 @@ public class QuestionIngestionService {
     private final JdbcTemplate jdbc;
     private final CustomerQuestionRepository questions;
     private final DraftCoordinator drafts;
+    private final EntityManager entityManager;
 
     public QuestionIngestionService(
             JdbcTemplate jdbc,
             CustomerQuestionRepository questions,
-            DraftCoordinator drafts) {
+            DraftCoordinator drafts,
+            EntityManager entityManager) {
         this.jdbc = jdbc;
         this.questions = questions;
         this.drafts = drafts;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -45,6 +49,8 @@ public class QuestionIngestionService {
         if (inserted == 0) {
             return IngestResult.DUPLICATE;
         }
+        entityManager.flush();
+        entityManager.clear();
         CustomerQuestion question = questions.findById(id).orElseThrow();
         drafts.onQuestionStored(question);
         return IngestResult.CREATED;

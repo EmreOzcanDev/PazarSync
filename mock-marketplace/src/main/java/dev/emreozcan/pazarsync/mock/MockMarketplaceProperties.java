@@ -29,6 +29,15 @@ public class MockMarketplaceProperties {
         private boolean enabled = true;
         private double failureRate = 0.1;
         private double duplicateRate = 0.15;
+        private int failFirst;
+
+        public int getFailFirst() {
+            return failFirst;
+        }
+
+        public void setFailFirst(int failFirst) {
+            this.failFirst = failFirst;
+        }
 
         public boolean isEnabled() {
             return enabled;

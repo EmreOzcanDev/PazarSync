@@ -7,14 +7,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class FaultInterceptor implements HandlerInterceptor {
 
     private final MockMarketplaceProperties properties;
+    private final AtomicInteger forcedFailuresRemaining;
 
     public FaultInterceptor(MockMarketplaceProperties properties) {
         this.properties = properties;
+        this.forcedFailuresRemaining = new AtomicInteger(properties.getFaults().getFailFirst());
     }
 
     @Override
@@ -26,7 +29,14 @@ public class FaultInterceptor implements HandlerInterceptor {
         }
         String path = request.getRequestURI();
         boolean poll = path.endsWith("/orders") || path.endsWith("/questions");
-        if (poll && ThreadLocalRandom.current().nextDouble() < faults.getFailureRate()) {
+        if (!poll) {
+            return true;
+        }
+        if (forcedFailuresRemaining.get() > 0 && forcedFailuresRemaining.getAndDecrement() > 0) {
+            response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Injected marketplace fault");
+            return false;
+        }
+        if (ThreadLocalRandom.current().nextDouble() < faults.getFailureRate()) {
             response.sendError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Injected marketplace fault");
             return false;
         }

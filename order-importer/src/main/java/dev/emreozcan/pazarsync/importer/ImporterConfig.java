@@ -11,8 +11,8 @@ import org.springframework.web.client.RestClient;
 public class ImporterConfig {
 
     @Bean
-    RestClient marketplaceRestClient(ImporterProperties properties, RestClient.Builder builder) {
-        return builder.baseUrl(properties.getMarketplaceBaseUrl()).build();
+    RestClient marketplaceRestClient(ImporterProperties properties) {
+        return RestClient.builder().baseUrl(properties.getMarketplaceBaseUrl()).build();
     }
 
     @Bean
