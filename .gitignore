@@ -1,0 +1,13 @@
+target/
+!.mvn/wrapper/maven-wrapper.properties
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+node_modules/
+dist/
+.env
+deploy/.env
+*.log
+.DS_Store
